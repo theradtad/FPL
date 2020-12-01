@@ -18,7 +18,7 @@ player_metrics = dict()
 conf = SparkConf()
 conf.setAppName('BigData Project')
 
-spark_context = SparkContext(conf=conf, master="local[2]")
+spark_context = SparkContext(conf=conf, master="local[*]")
 streaming_context = StreamingContext(spark_context, 2)
 
 streaming_context.checkpoint('BigData Project Checkpoint')
@@ -88,14 +88,14 @@ def own_goal_calulation(event_record):
 	global own_goal_details
 	player_id = str(event_record["playerId"])
 	tags = event_record["tags"]
+	if(len(tags)!=0 and player_id!='0'):
+		if(player_id not in own_goal_details.keys()):
+			own_goal_details[player_id] = {
+				"no_of_own_goals": 0,
+			}
 
-	if(player_id not in own_goal_details.keys()):
-		own_goal_details[player_id] = {
-			"no_of_own_goals": 0,
-		}
-
-	if(own_goal in tags):
-		own_goal_details[player_id]["no_of_own_goals"] += 1
+		if(own_goal in tags):
+			own_goal_details[player_id]["no_of_own_goals"] += 1
 
 
 # Calculating Pass Accuracy
@@ -117,37 +117,37 @@ def pass_accuracy(event_record):
 	global pass_accuracy_details_for_entire_stream
 	player_id = str(event_record["playerId"])
 	tags = event_record["tags"]
+	if(len(tags)!=0 and player_id!='0'):
+		if(player_id not in pass_accuracy_details.keys()):
+			pass_accuracy_details[player_id] = {
+				"no_of_accurate_normal_passes": 0,
+				"no_of_inaccurate_normal_passes": 0,
+				"no_of_accurate_key_passes": 0,
+				"no_of_inaccurate_key_passes": 0,
+				"pass_accuracy": 0.0
+			}
 
-	if(player_id not in pass_accuracy_details.keys()):
-		pass_accuracy_details[player_id] = {
-			"no_of_accurate_normal_passes": 0,
-			"no_of_inaccurate_normal_passes": 0,
-			"no_of_accurate_key_passes": 0,
-			"no_of_inaccurate_key_passes": 0,
-			"pass_accuracy": 0.0
-		}
+		if(key_pass in tags and accurate_pass in tags):
+			pass_accuracy_details[player_id]["no_of_accurate_key_passes"] += 1
+		elif(key_pass in tags and inaccurate_pass in tags):
+			pass_accuracy_details[player_id]["no_of_inaccurate_key_passes"] += 1
+		elif(key_pass not in tags and accurate_pass in tags):
+			pass_accuracy_details[player_id]["no_of_accurate_normal_passes"] += 1
+		elif(key_pass not in tags and inaccurate_pass in tags):
+			pass_accuracy_details[player_id]["no_of_inaccurate_normal_passes"] += 1
 
-	if(key_pass in tags and accurate_pass in tags):
-		pass_accuracy_details[player_id]["no_of_accurate_key_passes"] += 1
-	elif(key_pass in tags and inaccurate_pass in tags):
-		pass_accuracy_details[player_id]["no_of_inaccurate_key_passes"] += 1
-	elif(key_pass not in tags and accurate_pass in tags):
-		pass_accuracy_details[player_id]["no_of_accurate_normal_passes"] += 1
-	elif(key_pass not in tags and inaccurate_pass in tags):
-		pass_accuracy_details[player_id]["no_of_inaccurate_normal_passes"] += 1
+		total_no_of_accurate_normal_passes = pass_accuracy_details[player_id]["no_of_accurate_normal_passes"]
+		total_no_of_accurate_key_passes = pass_accuracy_details[player_id]["no_of_accurate_key_passes"]
+		total_no_of_normal_passes = pass_accuracy_details[player_id]["no_of_accurate_normal_passes"] + pass_accuracy_details[player_id]["no_of_inaccurate_normal_passes"]
+		total_no_of_key_passes = pass_accuracy_details[player_id]["no_of_accurate_key_passes"] + pass_accuracy_details[player_id]["no_of_inaccurate_key_passes"]
 
-	total_no_of_accurate_normal_passes = pass_accuracy_details[player_id]["no_of_accurate_normal_passes"]
-	total_no_of_accurate_key_passes = pass_accuracy_details[player_id]["no_of_accurate_key_passes"]
-	total_no_of_normal_passes = pass_accuracy_details[player_id]["no_of_accurate_normal_passes"] + pass_accuracy_details[player_id]["no_of_inaccurate_normal_passes"]
-	total_no_of_key_passes = pass_accuracy_details[player_id]["no_of_accurate_key_passes"] + pass_accuracy_details[player_id]["no_of_inaccurate_key_passes"]
-
-	numerator = (total_no_of_accurate_normal_passes + (total_no_of_accurate_key_passes*2))
-	denominator = (total_no_of_normal_passes + (total_no_of_key_passes*2))
-	
-	pass_accuracy_details[player_id]["pass_accuracy"] = numerator/denominator
-	
-	pass_accuracy_details_for_entire_stream[player_id]["numerator"]+=numerator
-	pass_accuracy_details_for_entire_stream[player_id]["denominator"]+=denominator
+		numerator = (total_no_of_accurate_normal_passes + (total_no_of_accurate_key_passes*2))
+		denominator = (total_no_of_normal_passes + (total_no_of_key_passes*2))
+		
+		pass_accuracy_details[player_id]["pass_accuracy"] = numerator/denominator
+		
+		pass_accuracy_details_for_entire_stream[player_id]["numerator"]+=numerator
+		pass_accuracy_details_for_entire_stream[player_id]["denominator"]+=denominator
 
 
 # duel Effectiveness Calculation
@@ -169,30 +169,30 @@ def duel_effectiveness(event_record):
 	global duel_effectiveness_details
 	player_id = str(event_record["playerId"])
 	tags = event_record["tags"]
+	if(len(tags)!=0 and player_id!='0'):
+		if(player_id not in duel_effectiveness_details.keys()):
+			duel_effectiveness_details[player_id] = {
+				"no_of_won_duels": 0,
+				"no_of_neutral_duels": 0,
+				"no_of_lost_duels": 0,
+				"duel_effectiveness": 0
+			}
 
-	if(player_id not in duel_effectiveness_details.keys()):
-		duel_effectiveness_details[player_id] = {
-			"no_of_won_duels": 0,
-			"no_of_neutral_duels": 0,
-			"no_of_lost_duels": 0,
-			"duel_effectiveness": 0
-		}
+		if(won_duel in tags):
+			duel_effectiveness_details[player_id]["no_of_won_duels"] += 1
+		if(neutral_duel in tags):
+			duel_effectiveness_details[player_id]["no_of_neutral_duels"] += 1
+		if(lost_duel in tags):
+			duel_effectiveness_details[player_id]["no_of_lost_duels"] += 1
 
-	if(won_duel in tags):
-		duel_effectiveness_details[player_id]["no_of_won_duels"] += 1
-	if(neutral_duel in tags):
-		duel_effectiveness_details[player_id]["no_of_neutral_duels"] += 1
-	if(lost_duel in tags):
-		duel_effectiveness_details[player_id]["no_of_lost_duels"] += 1
+		total_no_of_won_duels = duel_effectiveness_details[player_id]["no_of_won_duels"]
+		total_no_of_neutral_duels = duel_effectiveness_details[player_id]["no_of_neutral_duels"]
+		total_no_of_duels = duel_effectiveness_details[player_id]["no_of_won_duels"] + \
+			duel_effectiveness_details[player_id]["no_of_neutral_duels"] + \
+			duel_effectiveness_details[player_id]["no_of_lost_duels"]
 
-	total_no_of_won_duels = duel_effectiveness_details[player_id]["no_of_won_duels"]
-	total_no_of_neutral_duels = duel_effectiveness_details[player_id]["no_of_neutral_duels"]
-	total_no_of_duels = duel_effectiveness_details[player_id]["no_of_won_duels"] + \
-		duel_effectiveness_details[player_id]["no_of_neutral_duels"] + \
-		duel_effectiveness_details[player_id]["no_of_lost_duels"]
-
-	duel_effectiveness_details[player_id]["duel_effectiveness"] = (
-		(total_no_of_won_duels + (total_no_of_neutral_duels*0.5)) / (total_no_of_duels))
+		duel_effectiveness_details[player_id]["duel_effectiveness"] = (
+			(total_no_of_won_duels + (total_no_of_neutral_duels*0.5)) / (total_no_of_duels))
 
 
 # Free Kick Effectiveness calculation
@@ -216,7 +216,7 @@ def free_kick_effectiveness(event_record):
 	tags = event_record["tags"]
 	subId = event_record["subEventId"]
 
-	if(len(tags) != 0):
+	if(len(tags) != 0 and player_id!='0'):
 		if(player_id not in free_kick_effectiveness_details.keys()):
 			free_kick_effectiveness_details[player_id] = {
 				"no_of_effective_free_kicks": 0,
@@ -229,12 +229,16 @@ def free_kick_effectiveness(event_record):
 			free_kick_effectiveness_details[player_id]["no_of_effective_free_kicks"] += 1
 		if(free_kick_not_effective in tags and subId != 35):
 			free_kick_effectiveness_details[player_id]["no_of_not_effective_free_kicks"] += 1
+		if(free_kick_not_effective in tags and subId == 35):
+			free_kick_effectiveness_details[player_id]["no_of_not_effective_free_kicks"] += 1
 		if(free_kick_effective in tags and subId == 35):
 			if(penalty_goal in tags):
 				free_kick_effectiveness_details[player_id]["no_of_effective_free_kicks"] += 1
 				free_kick_effectiveness_details[player_id]["no_of_penalties_scored"] += 1
 			if(penalty_goal not in tags):
 				free_kick_effectiveness_details[player_id]["no_of_effective_free_kicks"] += 1
+		if(free_kick_effective in tags and subId!=35):
+			free_kick_effectiveness_details[player_id]["no_of_effective_free_kicks"] += 1
 
 		total_no_of_effective_free_kicks = free_kick_effectiveness_details[
 			player_id]["no_of_effective_free_kicks"]
@@ -266,32 +270,32 @@ def shot_effectiveness(event_record):
 	global shot_effectiveness_details
 	player_id = str(event_record["playerId"])
 	tags = event_record["tags"]
+	if(len(tags)!=0 and player_id!='0'):
+		if(player_id not in shot_effectiveness_details.keys()):
+			shot_effectiveness_details[player_id] = {
+				"no_shots_on_target_and_not_goal": 0,
+				"no_shots_on_target_and_goal": 0,
+				"no_shots_not_on_target": 0,
+				"shot_effectiveness": 0
+			}
 
-	if(player_id not in shot_effectiveness_details.keys()):
-		shot_effectiveness_details[player_id] = {
-			"no_shots_on_target_and_not_goal": 0,
-			"no_shots_on_target_and_goal": 0,
-			"no_shots_not_on_target": 0,
-			"shot_effectiveness": 0
-		}
+		if(shot_goal in tags and shot_on_target):
+			shot_effectiveness_details[player_id]["no_shots_on_target_and_goal"] += 1
+		if(shot_on_target in tags and shot_goal not in tags):
+			shot_effectiveness_details[player_id]["no_shots_on_target_and_not_goal"] += 1
+		if(shot_not_on_target in tags):
+			shot_effectiveness_details[player_id]["no_shots_not_on_target"] += 1
 
-	if(shot_goal in tags and shot_on_target):
-		shot_effectiveness_details[player_id]["no_shots_on_target_and_goal"] += 1
-	if(shot_on_target in tags and shot_goal not in tags):
-		shot_effectiveness_details[player_id]["no_shots_on_target_and_not_goal"] += 1
-	if(shot_not_on_target in tags):
-		shot_effectiveness_details[player_id]["no_shots_not_on_target"] += 1
+		total_no_of_shots_on_target_and_goals = shot_effectiveness_details[
+			player_id]["no_shots_on_target_and_goal"]
+		total_no_of_shots_on_target_but_not_goals = shot_effectiveness_details[
+			player_id]["no_shots_on_target_and_not_goal"]
+		total_no_of_shots = shot_effectiveness_details[player_id]["no_shots_on_target_and_goal"] + \
+			shot_effectiveness_details[player_id]["no_shots_on_target_and_not_goal"] + \
+			shot_effectiveness_details[player_id]["no_shots_not_on_target"]
 
-	total_no_of_shots_on_target_and_goals = shot_effectiveness_details[
-		player_id]["no_shots_on_target_and_goal"]
-	total_no_of_shots_on_target_but_not_goals = shot_effectiveness_details[
-		player_id]["no_shots_on_target_and_not_goal"]
-	total_no_of_shots = shot_effectiveness_details[player_id]["no_shots_on_target_and_goal"] + \
-		shot_effectiveness_details[player_id]["no_shots_on_target_and_not_goal"] + \
-		shot_effectiveness_details[player_id]["no_shots_not_on_target"]
-
-	shot_effectiveness_details[player_id]["shot_effectiveness"] = (
-		(total_no_of_shots_on_target_and_goals) + (total_no_of_shots_on_target_but_not_goals*0.5)) / (total_no_of_shots)
+		shot_effectiveness_details[player_id]["shot_effectiveness"] = (
+			(total_no_of_shots_on_target_and_goals) + (total_no_of_shots_on_target_but_not_goals*0.5)) / (total_no_of_shots)
 
 
 # Foul Loss calculation
@@ -301,7 +305,7 @@ def foul_loss(event_record):
 	global foul_details
 	player_id = str(event_record["playerId"])
 
-	if(player_id not in foul_details.keys()):
+	if(player_id not in foul_details.keys() and player_id!='0'):
 		foul_details[player_id] = {
 			"no_of_fouls": 0,
 		}
@@ -340,7 +344,6 @@ def displayWinner(team_id):
 # Updates the player chemistries
 def updatePlayerChemistries(temp_player_ratings, team_1_players, team_2_players):
 	global players_chemistry
-	global player_ratings
 
 	team_1_players_ids = []
 	for obj in team_1_players:
@@ -349,53 +352,39 @@ def updatePlayerChemistries(temp_player_ratings, team_1_players, team_2_players)
 	team_2_players_ids = []
 	for obj in team_2_players:
 		team_2_players_ids.append(str(obj["playerId"]))
-	print(team_1_players_ids+team_2_players_ids)
-	# for i in range(len(team_1_players_ids+team_2_players_ids)):
-	# 	player_id_1 = (team_1_players_ids+team_2_players_ids)[i]
-	# 	if(player_id_1 not in players_chemistry):
-	# 		d = dict()
-	# 		for j in range(len(team_1_players_ids+team_2_players_ids)):
-	# 			player_id_2 = (team_1_players_ids+team_2_players_ids)[j]
-	# 			if(player_id_1 != player_id_2):
-	# 				d[player_id_2] = {
-	# 					"player_chemistry": 0.5
-	# 				}
-	# 		players_chemistry[player_id_1] = d
-	# 	else:
-	# 		d = dict()
-	# 		for j in range(len(team_1_players_ids+team_2_players_ids)):
-	# 			player_id_2 = (team_1_players_ids+team_2_players_ids)[j]
-	# 			if(player_id_2 not in players_chemistry[player_id_1]):
-	# 				if(player_id_1 != player_id_2):
-	# 					d[player_id_2] = {
-	# 						"player_chemistry": 0.5
-	# 					}
-	# 		players_chemistry[player_id_1] = d
 
-	# for i in range(len(team_1_players_ids+team_2_players_ids)):
-	# 	player_id_1 = (team_1_players_ids+team_2_players_ids)[i]
-	# 	for j in range(i+1, len(team_1_players_ids+team_2_players_ids)):
-	# 		player_id_2 = (team_1_players_ids+team_2_players_ids)[j]
-	# 		if(player_id_1 != player_id_2):
-	# 			if((player_id_1 in team_1_players_ids and player_id_2 in team_1_players_ids) or (player_id_1 in team_2_players_ids and player_id_2 in team_2_players_ids)):
-	# 				change_in_chemistry = abs(
-	# 					(temp_player_ratings[player_id_1]["change_in_rating"]+temp_player_ratings[player_id_2]["change_in_rating"])/2)
-	# 				if((temp_player_ratings[player_id_1]["change_in_rating"] >= 0 and temp_player_ratings[player_id_2]["change_in_rating"] >= 0) or (temp_player_ratings[player_id_1]["change_in_rating"] < 0 and temp_player_ratings[player_id_2]["change_in_rating"] < 0)):
-	# 					players_chemistry[player_id_1][player_id_2]["player_chemistry"] += change_in_chemistry
-	# 					players_chemistry[player_id_1][player_id_2]["player_chemistry"] += change_in_chemistry
+	for i in range(len(team_1_players_ids+team_2_players_ids)):
+		player_id_1 = (team_1_players_ids+team_2_players_ids)[i]
+		for j in range(i+1,len(team_1_players_ids+team_2_players_ids)):
+			player_id_2 = (team_1_players_ids+team_2_players_ids)[j]
+			if((player_id_1 != player_id_2) and ((player_id_1,player_id_2) not in players_chemistry)):
+				players_chemistry[(player_id_1,player_id_2)] = 0.5
+				players_chemistry[(player_id_2,player_id_1)] = 0.5
 
-	# 				else:
-	# 					players_chemistry[player_id_1][player_id_2]["player_chemistry"] -= change_in_chemistry
-	# 					players_chemistry[player_id_1][player_id_2]["player_chemistry"] -= change_in_chemistry
-	# 			elif((player_id_1 in team_1_players_ids and player_id_2 in team_2_players_ids) or (player_id_2 in team_1_players_ids and player_id_1 in team_2_players_ids)):
-	# 				change_in_chemistry = abs(
-	# 					(temp_player_ratings[player_id_1]["change_in_rating"]+temp_player_ratings[player_id_2]["change_in_rating"])/2)
-	# 				if((temp_player_ratings[player_id_1]["change_in_rating"] >= 0 and temp_player_ratings[player_id_2]["change_in_rating"] >= 0) or temp_player_ratings[player_id_1]["change_in_rating"] < 0 and temp_player_ratings[player_id_2]["change_in_rating"] < 0):
-	# 					players_chemistry[player_id_1][player_id_2]["player_chemistry"] -= change_in_chemistry
-	# 					players_chemistry[player_id_1][player_id_2]["player_chemistry"] -= change_in_chemistry
-	# 				else:
-	# 					players_chemistry[player_id_1][player_id_2]["player_chemistry"] += change_in_chemistry
-	# 					players_chemistry[player_id_2][player_id_1]["player_chemistry"] += change_in_chemistry
+	for i in range(len(team_1_players_ids+team_2_players_ids)):
+		player_id_1 = (team_1_players_ids+team_2_players_ids)[i]
+		for j in range(i+1, len(team_1_players_ids+team_2_players_ids)):
+			player_id_2 = (team_1_players_ids+team_2_players_ids)[j]
+			if(player_id_1 != player_id_2):
+				if((player_id_1 in team_1_players_ids and player_id_2 in team_1_players_ids) or (player_id_1 in team_2_players_ids and player_id_2 in team_2_players_ids)):
+					change_in_chemistry = abs(
+						(temp_player_ratings[player_id_1]["change_in_rating"]+temp_player_ratings[player_id_2]["change_in_rating"])/2)
+					if((temp_player_ratings[player_id_1]["change_in_rating"] >= 0 and temp_player_ratings[player_id_2]["change_in_rating"] >= 0) or (temp_player_ratings[player_id_1]["change_in_rating"] < 0 and temp_player_ratings[player_id_2]["change_in_rating"] < 0)):
+						players_chemistry[(player_id_1,player_id_2)]+= change_in_chemistry
+						players_chemistry[(player_id_2,player_id_1)]+= change_in_chemistry
+
+					else:
+						players_chemistry[(player_id_1,player_id_2)]-= change_in_chemistry
+						players_chemistry[(player_id_2,player_id_1)]-= change_in_chemistry
+				elif((player_id_1 in team_1_players_ids and player_id_2 in team_2_players_ids) or (player_id_2 in team_1_players_ids and player_id_1 in team_2_players_ids)):
+					change_in_chemistry = abs(
+						(temp_player_ratings[player_id_1]["change_in_rating"]+temp_player_ratings[player_id_2]["change_in_rating"])/2)
+					if((temp_player_ratings[player_id_1]["change_in_rating"] >= 0 and temp_player_ratings[player_id_2]["change_in_rating"] >= 0) or temp_player_ratings[player_id_1]["change_in_rating"] < 0 and temp_player_ratings[player_id_2]["change_in_rating"] < 0):
+						players_chemistry[(player_id_1,player_id_2)]-= change_in_chemistry
+						players_chemistry[(player_id_2,player_id_1)]-= change_in_chemistry
+					else:
+						players_chemistry[(player_id_1,player_id_2)]+= change_in_chemistry
+						players_chemistry[(player_id_2,player_id_1)]+= change_in_chemistry
 
 # Find the player contribution in a match
 def findPlayerContribution(player_id, players_in_this_match):
@@ -593,7 +582,6 @@ def end_of_match_calculation(match_record):
 	update_end_of_stream_playersdata(players_in_this_match)
 	#updatePlayerChemistries(temp_player_ratings,team_1_players, team_2_players)
 
-
 	# Clears all the dictionaries as these hold per match data
 	temp_player_ratings.clear()
 	player_metrics.clear()
@@ -637,18 +625,19 @@ def metrics_calculation(a):
 		player_id = ""
 		if("eventId" in json.loads(i).keys()):
 			player_id = str(json.loads(i)["playerId"])
-		if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 8):
-			pass_accuracy(json.loads(i))
-		if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 1):
-			duel_effectiveness(json.loads(i))
-		if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 3):
-			free_kick_effectiveness(json.loads(i))
-		if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 2):
-			foul_loss(json.loads(i))
-		if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 10):
-			shot_effectiveness(json.loads(i))
-		if("eventId" in json.loads(i).keys()):
-			own_goal_calulation(json.loads(i))
+		if(player_id!='0'):
+			if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 8):
+				pass_accuracy(json.loads(i))
+			if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 1):
+				duel_effectiveness(json.loads(i))
+			if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 3):
+				free_kick_effectiveness(json.loads(i))
+			if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 2):
+				foul_loss(json.loads(i))
+			if("eventId" in json.loads(i).keys() and json.loads(i)["eventId"] == 10):
+				shot_effectiveness(json.loads(i))
+			if("eventId" in json.loads(i).keys()):
+				own_goal_calulation(json.loads(i))
 
 		#checking !=0 was because there was an error with a stream object that had a player_id as 0 incorrectly
 		if(player_id != '0' and player_id):
@@ -681,6 +670,10 @@ def writeToHDFS():
 	global players_data
 	global player_ratings
 	global match_details
+	global players_chemistry
+
+	spark = SparkSession.builder.appName("Write to HDFS").getOrCreate()
+	sqlContext=SQLContext(spark)
 
 	#writing players_data to hdfs
 	lst1=[]
@@ -708,6 +701,23 @@ def writeToHDFS():
 	df2 = sqlContext.createDataFrame(data=l,schema=player_rating_schema)
 	df2.write.json("/input_proj/player_ratings.json",mode = "overwrite")
 
+	#writing player chemistries to hdfs
+	l=[]
+	for (player_id_1,player_id_2) in players_chemistry:
+		b=((player_id_1,player_id_2),players_chemistry[(player_id_1,player_id_2)])
+		l.append(b)
+
+	players_chemistry_schema = StructType([
+		StructField('(player1,player2)', StructType([
+			 StructField('player_id_1', StringType(), True),
+			 StructField('player_id_2', StringType(), True),
+			 ])),
+		 StructField('chemistry', FloatType(), True),
+		 ])
+
+	df3 = sqlContext.createDataFrame(data=l,schema=players_chemistry_schema)
+	df3.write.json("/input_proj/players_chemistry.json",mode = "overwrite")
+
 	#writing match_details to local file
 	with open('/home/chirag/Desktop/BigDataProject/matches_details.json','w') as f:
 		f.write(json.dumps(match_details,indent=4))
@@ -717,10 +727,10 @@ input_stream.foreachRDD(lambda a:metrics_calculation(a))
 #input_stream.pprint()
 
 streaming_context.start()
-streaming_context.awaitTermination(75)
+streaming_context.awaitTermination(350)
+streaming_context.stop()
 writeFinalPassAccuracyToPlayersData()
 writeToHDFS()
-streaming_context.stop()
 pass_accuracy_details_for_entire_stream.clear()
 players_data.clear()
 teams_data.clear()
