@@ -580,7 +580,7 @@ def end_of_match_calculation(match_record):
 			temp_player_ratings[player_id]["old_rating"]
 
 	update_end_of_stream_playersdata(players_in_this_match)
-	#updatePlayerChemistries(temp_player_ratings,team_1_players, team_2_players)
+	updatePlayerChemistries(temp_player_ratings,team_1_players, team_2_players)
 
 	# Clears all the dictionaries as these hold per match data
 	temp_player_ratings.clear()
