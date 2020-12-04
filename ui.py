@@ -12,7 +12,7 @@ import datetime
 
 #all paths for required files
 players_json_path = 'hdfs://localhost:9000/input_proj/players2.json'
-players_chemistry_path = 'hdfs://localhost:9000/input_proj/players_chemistry.json'
+players_chemistry_path = 'hdfs://localhost:9000/input_proj/players_chemistry2.json'
 players_ratings_path = 'hdfs://localhost:9000/input_proj/player_ratings.json'
 matches_json_path = '/home/chirag/Desktop/BigDataProject//matches_details.json'
 input_player_data_path = '/home/chirag/Desktop/BigDataProject/inp_player.json'
@@ -29,6 +29,13 @@ sqlcontext=SQLContext(spark)
 def displayPlayerProfile(input_data):
 	players_data_df = sqlcontext.read.json(players_json_path)
 	players_data_df = players_data_df.filter(players_data_df.name == input_data["name"])
+	if(players_data_df.count() == 0):
+		d={
+			"Error":"Invalid"
+		}
+		with open(output_player_data_path, "w") as jsonFile:
+			jsonFile.write(json.dumps(d,indent=4))
+
 	player = players_data_df.collect()[0]
 	output_dict=dict()
 	output_dict={
@@ -63,6 +70,12 @@ def displayMatchDetails(input_data):
 			with open(output_match_data_path, "w") as jsonFile:
 				jsonFile.write(json.dumps(matches_data[match_id],indent=4))
 			break
+	d = {
+		"Error":"Invalid"
+	}
+	with open(output_match_data_path, "w") as jsonFile:
+		jsonFile.write(json.dumps(d,indent=4))
+
 
 def clustering_players(df_players):
     l = []
@@ -264,6 +277,7 @@ def match_prediction(input_data):
 
     #clustering players and storing the resulting transformation in dataframe
 	clustered_df = clustering_players(df_players)
+	clustered_df = clustered_df.select(["Id","number_of_matches","prediction","birthDate"])
 
 	#joined dataframe for chemistry and clustering
 	joined_records_chemistry=clustered_df.join(df_players_chemistry,clustered_df.Id==df_players_chemistry.player1_player2.player_id_1)
@@ -325,10 +339,12 @@ def match_prediction(input_data):
 		num_matches = row_of_player.collect()[0].number_of_matches
 		if(num_matches < 5):
 			row_of_player = clustered_df.filter(clustered_df.Id == player)
-			cluster_number = clustered_df.collect()[0].prediction
-			birthdate =clustered_df.collect()[0].birthDate
+			cluster_number = row_of_player.collect()[0].prediction
+			birthdate =row_of_player.collect()[0].birthDate
 			player_ratings_dictionary[player] = regression_on_cluster(joined_records_ratings,cluster_number,birthdate,input_data["date"])
 		else:
+			row_of_player = clustered_df.filter(clustered_df.Id == player)
+			birthdate =row_of_player.collect()[0].birthDate
 			player_ratings_dictionary[player] = regression_on_player(joined_records_ratings,player,birthdate,input_data["date"])
 
 	sum_team_a = 0
@@ -362,19 +378,15 @@ def match_prediction(input_data):
 		jsonFile.write(json.dumps(d,indent=4))
 	return
 
-choice = int(sys.argv[1])
-if(choice==2):
-	with open(input_player_data_path, "r") as jsonFile:
-		input_data = json.load(jsonFile)
-	displayPlayerProfile(input_data)
-elif(choice==3):
-	with open(input_match_data_path, "r") as jsonFile:
-		input_data = json.load(jsonFile)
-	displayMatchDetails(input_data)
-elif(choice==1):
-	with open(input_prediction_data_path, "r") as jsonFile:
-		input_data = json.load(jsonFile)
-	det = match_prediction(input_data)
+file_path = sys.argv[1]
+with open(file_path, "r") as jsonFile:
+	input_data = json.load(jsonFile)
+
+if("req_type" in input_data.keys()):
+	if(input_data["req_type"] == 1):
+		det = match_prediction(input_data)
+	elif(input_data["req_type"] == 2):
+		displayPlayerProfile(input_data)
 else:
-	print("Invalid Choice")
+	displayMatchDetails(input_data)
 		
